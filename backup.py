@@ -2151,7 +2151,7 @@ class UltimateAndroidBackup:
             except Exception:
                 pass           
                 
-async def _cleanup_old_backups(self, config: BackupConfig, max_backups: int):
+    async def _cleanup_old_backups(self, config: BackupConfig, max_backups: int):
         """Remove old backups to maintain maximum count"""
         if max_backups <= 0:
             return
@@ -3652,7 +3652,7 @@ if __name__ == "__main__":
         except Exception as e:
             self.logger.error(f"ADB command failed: {str(e)}")
             raise
-                async def optimize_backup_size(self, backup_path: Path) -> int:
+    async def optimize_backup_size(self, backup_path: Path) -> int:
         """Optimize backup size by removing unnecessary files"""
         try:
             total_saved = 0
