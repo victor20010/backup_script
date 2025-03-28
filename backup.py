@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Set, Union, Tuple
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, field, asdict
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -68,6 +68,29 @@ from adb_shell.auth.sign_pythonrsa import PythonRSASigner
 from adb_shell.auth.keygen import keygen
 import psutil
 from tqdm import tqdm
+@dataclass
+class BackupConfig:
+    device_id: Optional[str] = None
+    backup_root: Path = Path.home() / "AndroidBackup"
+    max_backups: int = 5
+    encryption_enabled: bool = True
+    compression_level: int = 6
+    compression_method: str = "zstd"
+    chunk_size: int = 4 * 1024 * 1024  # 4MB chunks
+    max_retries: int = 3
+    exclude_dirs: Set[str] = field(default_factory=lambda: {'cache', 'code_cache', 'lib', 'app_webview'})
+    system_whitelist: List[str] = field(default_factory=lambda: [
+        "com.google.android.gms",
+        "com.google.android.gsf",
+        "com.android.vending"
+    ])
+    parallel_processes: int = max(1, multiprocessing.cpu_count() - 1)
+    parallel_threads: int = multiprocessing.cpu_count() * 2
+    max_concurrent_tasks: int = 50  # Task throttling
+    pbkdf2_iterations: int = 600000  # OWASP recommended
+    min_free_space_percent: int = 15  # Minimum free space required
+    verify_restore: bool = True
+    backup_system_apps: bool = False
 
 # --- Exception Handling ---
 class BackupError(Exception):
@@ -239,6 +262,7 @@ class Config:
         self.backup_root = Path.home() / "AndroidBackup"
         self.min_free_space_percent = 15  # Minimum free space required
 
+
 class UltimateAndroidBackup:
     def __init__(self, password: Optional[str] = None, 
                  cloud_config: Optional[dict] = None,
@@ -275,6 +299,32 @@ class UltimateAndroidBackup:
         self._package_count = 0
         self._backup_dir = None
 
+    def _setup_logger(self):
+        """Setup logger for the backup process."""
+        logger = logging.getLogger('UltimateAndroidBackup')
+        logger.setLevel(logging.INFO)
+        
+        # Create console handler with a higher log level
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        
+        # Create formatter and add it to the handler
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        
+        # Add the handler to the logger
+        logger.addHandler(ch)
+        
+        return logger
+    
+    def _get_backup_root(self) -> Path:
+        """Get the root directory for backups."""
+        backup_root = self.config.backup_root
+        if not os.path.exists(backup_root):
+            os.makedirs(backup_root)
+        return backup_root
+
+    
     def _setup_encryption(self, password: Optional[str]):
         """Initialize encryption with secure parameters"""
         if password and self.config.encryption_enabled:
@@ -3755,8 +3805,32 @@ if __name__ == "__main__":
             return 0
 
 
+class BackupGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Ultimate Android Backup")
+        
+        # Create a frame for the buttons
+        frame = tk.Frame(root)
+        frame.pack(pady=10)
+        
+        # Create buttons for backup and restore actions
+        self.backup_button = tk.Button(frame, text="Backup", command=self.start_backup)
+        self.backup_button.pack(side="left", padx=5)
+        
+        self.restore_button = tk.Button(frame, text="Restore", command=self.start_restore)
+        self.restore_button.pack(side="left", padx=5)
+    
+    def start_backup(self):
+        messagebox.showinfo("Backup", "Starting backup process...")
+        # Here you would call the backup function
+    
+    def start_restore(self):
+        messagebox.showinfo("Restore", "Starting restore process...")
+        # Here you would call the restore function
+
+# Main entry point with CLI and GUI options.
 def main():
-    """Main entry point with CLI and GUI options."""
     parser = argparse.ArgumentParser(description="Ultimate Android Backup Solution")
     parser.add_argument('--action', choices=['backup', 'restore'], help="Action to perform")
     parser.add_argument('--file', help="Backup file for restore")
@@ -3823,6 +3897,5 @@ def main():
         print(f"Error: {str(e)}")
         sys.exit(1)
 
-
 if __name__ == '__main__':
-    main()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+    main()

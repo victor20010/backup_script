@@ -1,4 +1,4 @@
-﻿#!/system/bin/sh
+#!/system/bin/sh
 if [ "$(whoami)" != root ]; then
 echo "Are you stupid? If you don't give me root, you're going to crawl"
 exit 1
